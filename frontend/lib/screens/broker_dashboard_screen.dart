@@ -1,7 +1,5 @@
 // frontend/lib/screens/broker_dashboard_screen.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/property_provider.dart';
@@ -9,6 +7,7 @@ import '../services/user_service.dart';
 import '../services/inquiry_service.dart';
 import 'property_detail_screen.dart';
 import 'add_property_screen.dart';
+import 'inquiry_detail_screen.dart';
 
 class BrokerDashboardScreen extends StatefulWidget {
   const BrokerDashboardScreen({super.key});
@@ -152,6 +151,11 @@ class _BrokerDashboardScreenState extends State<BrokerDashboardScreen> {
                                 leading: const Icon(Icons.add_home_work, color: Colors.blue),
                                 title: Text('New Listing Request from ${inquiry['inquirer']['name']}'),
                                 subtitle: Text('Property: ${inquiry['propertyDetails']?['title'] ?? 'Details unavailable'}'),
+                                onTap: () {
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (ctx) => InquiryDetailScreen(inquiry: inquiry),
+                                  ));
+                                },
                               ),
                             );
                           } else {

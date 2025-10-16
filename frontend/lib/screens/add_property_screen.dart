@@ -7,7 +7,8 @@ import '../providers/auth_provider.dart';
 import '../providers/property_provider.dart';
 
 class AddPropertyScreen extends StatefulWidget {
-  const AddPropertyScreen({super.key});
+  final Map<String, dynamic>? initialData;
+  const AddPropertyScreen({super.key, this.initialData});
 
   @override
   State<AddPropertyScreen> createState() => _AddPropertyScreenState();
@@ -15,18 +16,31 @@ class AddPropertyScreen extends StatefulWidget {
 
 class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _bedroomsController = TextEditingController();
-  final _bathroomsController = TextEditingController();
-  final _areaController = TextEditingController();
-  String _propertyType = 'flat'; // Default value
+  late TextEditingController _titleController;
+  late TextEditingController _descController;
+  late TextEditingController _priceController;
+  late TextEditingController _locationController;
+  late TextEditingController _bedroomsController;
+  late TextEditingController _bathroomsController;
+  late TextEditingController _areaController;
+  String _propertyType = 'flat';
 
   List<File> _images = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.initialData?['title'] ?? '');
+    _descController = TextEditingController(text: widget.initialData?['description'] ?? '');
+    _priceController = TextEditingController(text: widget.initialData?['price']?.toString() ?? '');
+    _locationController = TextEditingController(text: widget.initialData?['location'] ?? '');
+    _bedroomsController = TextEditingController(text: widget.initialData?['bedrooms']?.toString() ?? '');
+    _bathroomsController = TextEditingController(text: widget.initialData?['bathrooms']?.toString() ?? '');
+    _areaController = TextEditingController(text: widget.initialData?['area']?.toString() ?? '');
+    _propertyType = widget.initialData?['propertyType'] ?? 'flat';
+  }
 
   @override
   void dispose() {
@@ -52,7 +66,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   void _saveForm() async {
     if (_formKey.currentState!.validate()) {
       setState(() { _isLoading = true; });
-
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
       final newPropertyData = {
@@ -70,15 +83,12 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           .createProperty(newPropertyData, _images, authProvider.token!);
 
       if (success && mounted) {
-        Navigator.of(context).pop();
-      } else {
-        // Show an error if something went wrong
-        if(mounted) {
-            setState(() { _isLoading = false; });
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to create property. Please try again.'))
-            );
-        }
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else if (mounted) {
+        setState(() { _isLoading = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to create property. Please try again.'))
+        );
       }
     }
   }
@@ -89,8 +99,8 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
       appBar: AppBar(
         title: const Text('Add New Property'),
         actions: [
-            if (_isLoading) const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: Colors.white)),
-            if (!_isLoading) IconButton(icon: const Icon(Icons.save), onPressed: _saveForm)
+          if (_isLoading) const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: Colors.white)),
+          if (!_isLoading) IconButton(icon: const Icon(Icons.save), onPressed: _saveForm)
         ],
       ),
       body: Padding(
@@ -99,7 +109,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              // --- ALL THE TEXT FIELDS ---
               TextFormField(controller: _titleController, decoration: const InputDecoration(labelText: 'Title'), validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _descController, decoration: const InputDecoration(labelText: 'Description'), validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _priceController, decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
@@ -116,8 +125,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
                 decoration: const InputDecoration(labelText: 'Property Type'),
               ),
               const SizedBox(height: 20),
-
-              // --- WIDGETS FOR IMAGES ---
               OutlinedButton.icon(
                 onPressed: _pickImages,
                 icon: const Icon(Icons.image_search),

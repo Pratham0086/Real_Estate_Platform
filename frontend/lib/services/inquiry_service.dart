@@ -8,25 +8,30 @@ class InquiryService {
   // For a customer to create an inquiry
   Future<bool> createInquiry(String? propertyId, String message, String token, {String inquiryType = 'property_contact'}) async {
     try {
-        final body = {
-            'message': message,
-            'inquiryType': inquiryType,
-        };
-        if (propertyId != null) {
-            body['propertyId'] = propertyId;
-        }
+      final body = {
+        'message': message,
+        'inquiryType': inquiryType,
+      };
+      if (propertyId != null) {
+        body['propertyId'] = propertyId;
+      }
 
-        final response = await http.post(
-            Uri.parse(_baseUrl),
-            headers: { /* ... same as before ... */ },
-            body: jsonEncode(body),
-        );
-        return response.statusCode == 201;
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        // --- THIS IS THE FIX ---
+        // The headers block was missing the Authorization token
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      return response.statusCode == 201;
     } catch (e) {
-        print(e);
-        return false;
+      print(e);
+      return false;
     }
-}
+  }
 
   // For a broker to get their inquiries
   Future<List<dynamic>> getMyInquiries(String token) async {
@@ -44,8 +49,9 @@ class InquiryService {
       return [];
     }
   }
-  // For a customer to submit a property lead request to multiple brokers
-    Future<bool> submitPropertyLead({
+  
+  // For submitting a detailed property lead
+  Future<bool> submitPropertyLead({
     required Map<String, dynamic> propertyDetails,
     required List<String> brokerIds,
     required String token,

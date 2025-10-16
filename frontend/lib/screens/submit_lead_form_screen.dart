@@ -1,7 +1,5 @@
 // frontend/lib/screens/submit_lead_form_screen.dart
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/inquiry_service.dart';
@@ -15,7 +13,6 @@ class SubmitLeadFormScreen extends StatefulWidget {
 }
 
 class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
-  // All the same controllers and state variables as AddPropertyScreen
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
@@ -41,9 +38,10 @@ class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
     super.dispose();
   }
 
-  // The main difference is this function
   void _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return; // If form is not valid, do nothing.
+    }
     setState(() { _isLoading = true; });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -51,11 +49,11 @@ class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
     final propertyDetails = {
       'title': _titleController.text,
       'description': _descController.text,
-      'price': int.parse(_priceController.text),
+      'price': int.tryParse(_priceController.text) ?? 0,
       'location': _locationController.text,
-      'bedrooms': int.parse(_bedroomsController.text),
-      'bathrooms': int.parse(_bathroomsController.text),
-      'area': int.parse(_areaController.text),
+      'bedrooms': int.tryParse(_bedroomsController.text) ?? 0,
+      'bathrooms': int.tryParse(_bathroomsController.text) ?? 0,
+      'area': int.tryParse(_areaController.text) ?? 0,
       'propertyType': _propertyType,
     };
 
@@ -66,11 +64,17 @@ class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
     );
 
     if (mounted) {
-      // Pop all the way back to the home screen
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(success ? 'Lead submitted to broker(s)!' : 'Failed to submit lead.')),
-      );
+      if (success) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lead submitted successfully!'), backgroundColor: Colors.green),
+        );
+      } else {
+        setState(() { _isLoading = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to submit lead. Please try again.'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -79,19 +83,20 @@ class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Submit Property Details'),
-        // The save button now calls _submitForm
-        actions: [IconButton(icon: const Icon(Icons.send), onPressed: _submitForm)],
+        actions: [
+          if (_isLoading) const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: Colors.white)),
+          if (!_isLoading) IconButton(icon: const Icon(Icons.send), onPressed: _submitForm)
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          // The form fields are exactly the same as AddPropertyScreen
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: ListView(
             children: [
               TextFormField(controller: _titleController, decoration: const InputDecoration(labelText: 'Title'), validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _descController, decoration: const InputDecoration(labelText: 'Description'), validator: (v) => v!.isEmpty ? 'Required' : null),
-              TextFormField(controller: _priceController, decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+              TextFormField(controller: _priceController, decoration: const InputDecoration(labelText: 'Expected Price'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _locationController, decoration: const InputDecoration(labelText: 'Location'), validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _bedroomsController, decoration: const InputDecoration(labelText: 'Bedrooms'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
               TextFormField(controller: _bathroomsController, decoration: const InputDecoration(labelText: 'Bathrooms'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
@@ -104,6 +109,12 @@ class _SubmitLeadFormScreenState extends State<SubmitLeadFormScreen> {
                 onChanged: (newValue) => setState(() => _propertyType = newValue!),
                 decoration: const InputDecoration(labelText: 'Property Type'),
               ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                onPressed: _submitForm,
+                child: const Text("Submit Lead to Broker(s)"),
+              )
             ],
           ),
         ),

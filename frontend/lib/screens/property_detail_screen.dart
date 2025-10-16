@@ -1,6 +1,7 @@
 // frontend/lib/screens/property_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart'; // Import the new package
 import 'edit_property_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/property_provider.dart';
@@ -73,7 +74,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send Inquiry'),
+        title: const Text('Send Inquiry Message'),
         content: TextField(
           controller: messageController,
           decoration: const InputDecoration(hintText: 'Type your message here...'),
@@ -102,6 +103,47 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                 );
               }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // New helper widget for instant contact buttons
+  Widget _buildContactButtons(Map<String, dynamic> owner) {
+    final String? phoneNumber = owner['phoneNumber'];
+
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    void _launchURL(String url) async {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $url')),
+        );
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.call),
+            label: const Text('Call Now'),
+            onPressed: () => _launchURL('tel:$phoneNumber'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.message),
+            label: const Text('WhatsApp'),
+            onPressed: () => _launchURL('https://wa.me/$phoneNumber'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
           ),
         ],
       ),
@@ -167,9 +209,18 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       Text('₹${_property!['price']}', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.green)),
                       const SizedBox(height: 16),
                       Text(_property!['location'], style: Theme.of(context).textTheme.titleMedium),
+                      const Divider(height: 32),
+                      
+                      _buildContactButtons(_property!['owner']),
+                      
+                      const Divider(height: 32),
+                      
+                      Text('Description:', style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 8),
+                      Text(_property!['description']),
                       const SizedBox(height: 16),
                       const Divider(),
-                      const SizedBox(height: 16),
+
                       Text('Details:', style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 8),
                       Text('Bedrooms: ${_property!['bedrooms']}'),
@@ -177,25 +228,17 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       Text('Area: ${_property!['area']} sq ft'),
                       const SizedBox(height: 16),
                       const Divider(),
-                      const SizedBox(height: 16),
-                      Text('Description:', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 8),
-                      Text(_property!['description']),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
+                      
                       Text('Listed by:', style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 8),
-                      Text('Owner: ${_property!['owner']['name']} (${_property!['owner']['email']})'),
+                      Text('Owner: ${_property!['owner']['name']}'),
                     ],
                   ),
                 ),
       floatingActionButton: (authProvider.isAuthenticated && authProvider.userRole == 'customer' && !_isLoading)
           ? FloatingActionButton.extended(
-              onPressed: () {
-                _showInquiryDialog(context, authProvider.token!);
-              },
-              label: const Text('Inquire Now'),
+              onPressed: () => _showInquiryDialog(context, authProvider.token!),
+              label: const Text('Send Message'),
               icon: const Icon(Icons.email_outlined),
             )
           : null,
